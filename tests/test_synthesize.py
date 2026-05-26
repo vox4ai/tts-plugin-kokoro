@@ -18,10 +18,13 @@ async def test_synthesize_success():
         (" world", "wɜːld", np.zeros(24000)),
     ]
 
-    with patch.object(KokoroConnector, "_get_pipeline", new_callable=AsyncMock) as mock_get_pipeline, \
-         patch.object(connector, "_run_synthesis") as mock_run_synth, \
-         patch.object(connector, "_numpy_to_wav") as mock_to_wav:
-
+    with (
+        patch.object(
+            KokoroConnector, "_get_pipeline", new_callable=AsyncMock
+        ) as mock_get_pipeline,
+        patch.object(connector, "_run_synthesis") as mock_run_synth,
+        patch.object(connector, "_numpy_to_wav") as mock_to_wav,
+    ):
         mock_get_pipeline.return_value = mock_pipeline
         mock_run_synth.return_value = np.zeros(48000)
         mock_to_wav.return_value = b"fake_wav_data"
@@ -39,9 +42,14 @@ async def test_synthesize_invalid_voice():
     connector = KokoroConnector()
     req = TTSRequest(text="Hello", extra={"voice": "invalid_voice"})
 
-    with patch.object(KokoroConnector, "_get_pipeline", new_callable=AsyncMock) as mock_get_pipeline, \
-         patch.object(KokoroConnector, "_run_synthesis", side_effect=ValueError("Voice not found")):
-
+    with (
+        patch.object(
+            KokoroConnector, "_get_pipeline", new_callable=AsyncMock
+        ) as mock_get_pipeline,
+        patch.object(
+            KokoroConnector, "_run_synthesis", side_effect=ValueError("Voice not found")
+        ),
+    ):
         mock_get_pipeline.return_value = MagicMock()
         resp = await connector.synthesize(req)
 
@@ -55,7 +63,11 @@ async def test_synthesize_import_error():
     connector = KokoroConnector()
     req = TTSRequest(text="Hello")
 
-    with patch.object(KokoroConnector, "_get_pipeline", side_effect=ImportError("Kokoro not installed")):
+    with patch.object(
+        KokoroConnector,
+        "_get_pipeline",
+        side_effect=ImportError("Kokoro not installed"),
+    ):
         resp = await connector.synthesize(req)
 
         assert resp.success is False
@@ -66,14 +78,19 @@ async def test_synthesize_import_error():
 async def test_synthesize_empty_audio_chunks():
     """Verify that synthesize returns failure when no audio chunks are generated."""
     connector = KokoroConnector()
-    # TTSRequest text must have at least 1 character. 
+    # TTSRequest text must have at least 1 character.
     # To test empty audio chunks, we synthesize a valid text but mock the pipeline to return nothing.
     req = TTSRequest(text="valid text", speed=1.0)
 
     mock_pipeline = MagicMock()
     mock_pipeline.return_value = []  # Empty generator
 
-    with patch.object(KokoroConnector, "_get_pipeline", new_callable=AsyncMock, return_value=mock_pipeline):
+    with patch.object(
+        KokoroConnector,
+        "_get_pipeline",
+        new_callable=AsyncMock,
+        return_value=mock_pipeline,
+    ):
         resp = await connector.synthesize(req)
 
         assert resp.success is False
@@ -87,15 +104,21 @@ async def test_synthesize_with_all_params():
     req = TTSRequest(
         text="Test with all params",
         speed=1.5,
-        extra={"voice": "custom_voice", "lang_code": "j"}
+        extra={"voice": "custom_voice", "lang_code": "j"},
     )
 
     mock_pipeline = MagicMock()
 
-    with patch.object(KokoroConnector, "_get_pipeline", new_callable=AsyncMock, return_value=mock_pipeline) as mock_get_pipeline, \
-         patch.object(connector, "_run_synthesis", return_value=np.zeros(24000)), \
-         patch.object(connector, "_numpy_to_wav", return_value=b"wav_data"):
-
+    with (
+        patch.object(
+            KokoroConnector,
+            "_get_pipeline",
+            new_callable=AsyncMock,
+            return_value=mock_pipeline,
+        ) as mock_get_pipeline,
+        patch.object(connector, "_run_synthesis", return_value=np.zeros(24000)),
+        patch.object(connector, "_numpy_to_wav", return_value=b"wav_data"),
+    ):
         resp = await connector.synthesize(req)
 
         assert resp.success is True
@@ -109,8 +132,10 @@ async def test_synthesize_file_not_found():
     connector = KokoroConnector(model_path="nonexistent/path/model.pth")
     req = TTSRequest(text="Hello")
 
-    with patch("shutil.which", return_value="/usr/bin/espeak-ng"), \
-         patch("kokoro.KPipeline", side_effect=FileNotFoundError("Model not found")):
+    with (
+        patch("shutil.which", return_value="/usr/bin/espeak-ng"),
+        patch("kokoro.KPipeline", side_effect=FileNotFoundError("Model not found")),
+    ):
         resp = await connector.synthesize(req)
 
         assert resp.success is False
@@ -128,10 +153,18 @@ async def test_synthesize_soundfile_error():
 
     mock_pipeline = MagicMock()
 
-    with patch.object(KokoroConnector, "_get_pipeline", new_callable=AsyncMock, return_value=mock_pipeline), \
-         patch.object(connector, "_run_synthesis", return_value=np.zeros(24000)), \
-         patch.object(connector, "_numpy_to_wav", side_effect=RuntimeError("Soundfile error")):
-
+    with (
+        patch.object(
+            KokoroConnector,
+            "_get_pipeline",
+            new_callable=AsyncMock,
+            return_value=mock_pipeline,
+        ),
+        patch.object(connector, "_run_synthesis", return_value=np.zeros(24000)),
+        patch.object(
+            connector, "_numpy_to_wav", side_effect=RuntimeError("Soundfile error")
+        ),
+    ):
         resp = await connector.synthesize(req)
 
         assert resp.success is False

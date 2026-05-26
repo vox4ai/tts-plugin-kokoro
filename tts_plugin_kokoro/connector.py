@@ -1,7 +1,7 @@
 import asyncio
 import shutil
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, AsyncIterator, Dict, Optional
 
 import numpy as np
 from tts_plugin_bridge.protocol import TTSConnector, TTSRequest, TTSResponse
@@ -18,8 +18,12 @@ class KokoroConnector(TTSConnector):
     SUPPORTED_PARAMS = ["voice", "speed", "lang_code"]
     SAMPLE_RATE = 24000  # Kokoro default sample rate
 
-    def __init__(self, model_path: Optional[str] = None, default_voice: str = "af_heart"):
-        self.model_path = Path(model_path) if model_path else Path("models/kokoro-v1_0.pth")
+    def __init__(
+        self, model_path: Optional[str] = None, default_voice: str = "af_heart"
+    ):
+        self.model_path = (
+            Path(model_path) if model_path else Path("models/kokoro-v1_0.pth")
+        )
         self.default_voice = default_voice
         self._pipelines: Dict[str, Any] = {}
 
@@ -65,7 +69,9 @@ class KokoroConnector(TTSConnector):
                 raise RuntimeError(f"Failed to initialize KPipeline: {e}") from e
         return self._pipelines[lang_code]
 
-    def _run_synthesis(self, pipeline: Any, text: str, voice: str, speed: float) -> np.ndarray:
+    def _run_synthesis(
+        self, pipeline: Any, text: str, voice: str, speed: float
+    ) -> np.ndarray:
         """Synchronous wrapper for the Kokoro synthesis process.
 
         Args:
@@ -136,8 +142,21 @@ class KokoroConnector(TTSConnector):
         except RuntimeError as e:
             return TTSResponse.fail(f"Runtime error during synthesis: {e}")
         except Exception as e:
-            return TTSResponse.fail(f"Unexpected error during synthesis: {type(e).__name__}: {e}")
+            return TTSResponse.fail(
+                f"Unexpected error during synthesis: {type(e).__name__}: {e}"
+            )
 
     async def close(self) -> None:
         """Clean up loaded pipelines to prevent memory leaks."""
         self._pipelines.clear()
+
+    async def synthesize_stream(self, req: TTSRequest) -> AsyncIterator[bytes]:
+        result = await self.synthesize(req)
+        if result.success and result.audio_data:
+            yield result.audio_data
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()

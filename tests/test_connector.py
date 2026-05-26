@@ -7,8 +7,10 @@ from tts_plugin_kokoro.connector import KokoroConnector
 async def test_is_available_all_present():
     """Verify that is_available returns True when all dependencies are present."""
     connector = KokoroConnector()
-    with patch("shutil.which", return_value="/usr/bin/espeak-ng"), \
-         patch("pathlib.Path.exists", return_value=True):
+    with (
+        patch("shutil.which", return_value="/usr/bin/espeak-ng"),
+        patch("pathlib.Path.exists", return_value=True),
+    ):
         assert await connector.is_available() is True
 
 
@@ -16,8 +18,10 @@ async def test_is_available_all_present():
 async def test_is_available_missing_espeak():
     """Verify that is_available returns False when espeak-ng is missing."""
     connector = KokoroConnector()
-    with patch("shutil.which", return_value=None), \
-         patch("pathlib.Path.exists", return_value=True):
+    with (
+        patch("shutil.which", return_value=None),
+        patch("pathlib.Path.exists", return_value=True),
+    ):
         assert await connector.is_available() is False
 
 
@@ -25,8 +29,10 @@ async def test_is_available_missing_espeak():
 async def test_is_available_missing_model():
     """Verify that is_available returns False when model file is missing."""
     connector = KokoroConnector()
-    with patch("shutil.which", return_value="/usr/bin/espeak-ng"), \
-         patch("pathlib.Path.exists", return_value=False):
+    with (
+        patch("shutil.which", return_value="/usr/bin/espeak-ng"),
+        patch("pathlib.Path.exists", return_value=False),
+    ):
         assert await connector.is_available() is False
 
 
