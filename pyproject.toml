@@ -21,8 +21,18 @@ tts-plugin-bridge = { path = "../tts-plugin-bridge", editable = true }
 dev = [
     "pytest>=9.0.3",
     "pytest-asyncio>=1.3.0",
+    "pytest-cov>=6.0.0",
     "ruff>=0.15.12",
 ]
+
+[tool.coverage.run]
+source = ["tts_plugin_kokoro"]
+branch = true
+omit = ["*/tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 50
 
 [project.entry-points."tts_bridge.connectors"]
 kokoro = "tts_plugin_kokoro.connector:KokoroConnector"
